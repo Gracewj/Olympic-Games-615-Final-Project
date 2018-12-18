@@ -1,0 +1,183 @@
+---
+title: "Olympics Games"
+author: "Wenjia Xie"
+date: "December 18, 2018"
+output: ioslides_presentation
+---
+
+
+```{r setup, include=FALSE}
+pacman::p_load(
+  "tidyverse",
+  "data.table",
+  "benford.analysis",
+  "gapminder",
+  "gapminder",
+  "plotly"
+)
+```
+
+## The introduction of the dataset
+This project used a historical dataset on the modern Olympic Games, including all the Games from Athens 1896 to Rio 2016.
+
+The Olympic data is the result of an incredible amount of research by a group of Olympic history enthusiasts and self-proclaimed 'statistorians'. Randi H Griffin scraped this data from the webpage and consolidated their work into a convenient format for data analysis.
+
+Please check out their blog for more information:
+![www.sports-reference.com]
+
+```{r,include=FALSE}
+athlete<-read_csv("athlete_events.csv")
+region<-read_csv("noc_regions.csv")
+athlete[which(athlete$Sex=="M"),3]<-"Male"
+athlete[which(athlete$Sex=="F"),3]<-"Female"
+female<-athlete %>% 
+  select(Sex,Height,Weight,Games,Sport) %>% 
+  filter(Sex=="F") %>% 
+  na.omit()
+male<-athlete %>% 
+  select(Sex,Height,Weight,Games,Sport) %>% 
+  filter(Sex=="M") %>% 
+  na.omit()
+```
+
+
+## sport
+```{r,echo=FALSE}
+number<-athlete %>%
+  select(Year,Name,Sex,Height,Weight,Season,Sport) %>%
+  filter(Season=="Summer") %>%
+  filter(Sex=="Male") %>%
+  group_by(Sport) %>%
+  summarise(number=n())
+
+
+sport<-athlete %>%
+  select(Year,Name,Sex,Height,Weight,Season,Sport) %>%
+  filter(Season=="Summer") %>%
+  filter(Sex=="Male") %>%
+  unique(by=c(Year,Name)) %>%
+  na.omit() %>%
+  group_by(Sport) %>%
+  summarise(mweight=mean(Weight),mheight=mean(Height)) %>%
+  left_join(number,by="Sport")
+
+sport$weight<-round(sport$mweight,2)
+sport$height<-round(sport$mheight,2)
+
+p <- plot_ly(sport,
+             x = ~mweight,
+             y = ~mheight,
+             color = ~Sport,
+             colors='Paired',
+             size = ~number,
+             type = 'scatter',
+             mode = 'markers',
+        marker = list(symbol = 'circle', sizemode = 'diameter',
+                      line = list(width = 2, color = '#FFFFFF')),
+        text = ~paste('Sport:', Sport, '<br> Mean Height:',
+                      round(mheight,2),'<br>Mean Weight:', round(mweight,2),
+                      '<br> Number of Athletes:', number)) %>%
+  layout(title = 'Mean Weight vs. Mean Height,1986-2016',
+         xaxis = list(title = 'Mean Weight',
+                      gridcolor = 'rgb(255, 255, 255)',
+                      range = c(60,95),
+                      zerolinewidth = 1,
+                      ticklen = 5,
+                      gridwidth = 2),
+         yaxis = list(title = 'Mean Height',
+                      gridcolor = 'rgb(255, 255, 255)',
+                      range = c(160,200),
+                      zerolinewidth = 1,
+                      ticklen = 5,
+                      gridwith = 2),
+         paper_bgcolor = 'rgb(243, 243, 243)',
+         plot_bgcolor = 'rgb(243, 243, 243)') %>%
+         layout(showlegend = FALSE)
+
+p
+
+
+```
+
+## country
+```{r,echo=FALSE}
+Gcountry<-athlete %>%
+      select(Team,NOC,Year,Season,Sport,Games,Event,Medal) %>%
+      filter(Season=="Summer") %>%
+      filter(Medal=="Gold") %>%
+      unique(by=c("NOC","Year","Event")) %>%
+      group_by(Year,NOC) %>%
+      summarise(nmedal=n())
+
+
+
+
+l <- list(color = toRGB("grey"), width = 0.9)  ### light grey boundaries
+
+
+g <- list(
+      showframe = FALSE,
+      showcoastlines = FALSE,
+      projection = list(type = 'Mercator')
+    )     ### specify map projection/options
+
+p <- plot_geo(Gcountry) %>%
+      add_trace(
+        z = ~nmedal,
+        color = ~nmedal,
+        colors = 'Blues',
+        frame = ~Year,
+        locations = ~NOC,
+        marker = list(line = l)
+      ) %>%
+      colorbar(title = paste("Number of gold Medal")) %>%
+      layout(title ='Evolution of the Olympics over time',
+             geo = g)
+
+p
+
+```
+
+
+
+## Benford Analysis
+```{r,echo=FALSE}
+height<-athlete %>% 
+  select(Name,Sex,Height) %>%
+  unique() %>% 
+  na.omit()
+
+fheight<-height %>% 
+  filter(Sex=="Female")
+
+
+
+bfd.gdp <- benford(fheight$Height,1)
+plot(bfd.gdp)
+
+
+
+
+```
+
+
+
+# The distrbution of Women's height
+```{r,echo=FALSE}
+p<-ggplot(height,aes(x=Height,color=Sex))+
+  geom_density(size=1.2,adjust=1.5)+
+  geom_histogram(aes(y=..density..,fill=Sex), alpha=0.1,
+                position="identity",bins=90)+
+  theme_minimal()
+ggplotly(p)
+
+fheight<-height %>%
+  filter(Sex=="Female")
+```
+
+
+# the QQplot of Women's height
+```{r,echo=FALSE}
+qqnorm(fheight$Height);qqline(fheight$Height, col = 2)
+
+```

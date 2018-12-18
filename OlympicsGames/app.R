@@ -37,10 +37,6 @@ ui <- dashboardPage(
       menuItem("Visualization",
                tabName = "Visualization",
                icon = icon("chevron-down",lib="glyphicon"),
-               menuItem("Gender",
-                        tabName = "gender",
-                        icon = icon("map-marker",lib = "glyphicon")
-               ),
                menuItem("Sports",
                         tabName = "sports",
                         icon = icon("thumbs-up", lib = "glyphicon")
