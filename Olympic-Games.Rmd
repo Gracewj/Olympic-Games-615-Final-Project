@@ -1,0 +1,184 @@
+---
+title: "Olympics Games"
+author: "Wenjia Xie"
+date: "December 12, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,out.width="0.9\\linewidth",dev="pdf",fig.align  = 'center')
+pacman::p_load(
+  "tidyverse",
+  "data.table",
+  "benford.analysis",
+  "gapminder",
+  "gapminder",
+  "plotly"
+)
+```
+
+## R Markdown
+
+```{r,echo=FALSE}
+athlete<-read_csv("athlete_events.csv")
+region<-read_csv("noc_regions.csv")
+athlete[which(athlete$Sex=="M"),3]<-"Male"
+athlete[which(athlete$Sex=="F"),3]<-"Female"
+female<-athlete %>% 
+  select(Sex,Height,Weight,Games,Sport) %>% 
+  filter(Sex=="F") %>% 
+  na.omit()
+male<-athlete %>% 
+  select(Sex,Height,Weight,Games,Sport) %>% 
+  filter(Sex=="M") %>% 
+  na.omit()
+```
+
+## Distribution
+```{r}
+# for women athlete
+height<-athlete %>% 
+  select(Name,Sex,Height) %>%
+  unique() %>% 
+  na.omit()
+ggplot(height,aes(x=Height))+
+  geom_histogram(bins=92)
+
+
+
+p<-ggplot(dis_data,aes(x=Height,color=Sex))+
+  geom_density(size=1.2,adjust=1.5)+
+  geom_histogram(aes(y=..density..,fill=Sex), alpha=0.1, 
+                position="identity",bins=90)+
+  theme_minimal()
+
+ggplotly(p)
+```
+
+## gender
+```{r}
+gender<-athlete %>% 
+  select(Year,Season,Sport,Event) %>% 
+  unique() %>% 
+  filter(Season=="Summer") 
+
+men<-gender[which(str_detect(athlete$Event,"Men")),]
+women<-gender[which(str_detect(athlete$Event,"Women")),]
+
+  
+
+```
+
+## sport
+```{r}
+number<-athlete %>% 
+  select(Year,Name,Sex,Height,Weight,Season,Sport) %>% 
+  filter(Season=="Summer") %>% 
+  filter(Sex=="Male") %>%
+  group_by(Sport) %>% 
+  summarise(number=n()) 
+
+
+sport<-athlete %>% 
+  select(Year,Name,Sex,Height,Weight,Season,Sport) %>% 
+  filter(Season=="Summer") %>% 
+  filter(Sex=="Male") %>% 
+  unique(by=c(Year,Name)) %>% 
+  na.omit() %>% 
+  group_by(Sport) %>% 
+  summarise(mweight=mean(Weight),mheight=mean(Height)) %>% 
+  left_join(number,by="Sport") 
+
+sport$weight<-round(sport$mweight,2)
+sport$height<-round(sport$mheight,2)
+
+p <- plot_ly(sport, 
+             x = ~mweight, 
+             y = ~mheight, 
+             color = ~Sport,
+             colors='Paired',
+             size = ~number,
+             type = 'scatter',
+             mode = 'markers', 
+        marker = list(symbol = 'circle', sizemode = 'diameter',
+                      line = list(width = 2, color = '#FFFFFF')),
+        text = ~paste('Sport:', Sport, '<br> Mean Height:', 
+                      round(mheight,2),'<br>Mean Weight:', round(mweight,2),
+                      '<br> Number of Athletes:', number)) %>%
+  layout(title = 'Mean Weight vs. Mean Height,1986-2016',
+         xaxis = list(title = 'Mean Weight',
+                      gridcolor = 'rgb(255, 255, 255)',
+                      range = c(60,95),
+                      zerolinewidth = 1,
+                      ticklen = 5,
+                      gridwidth = 2),
+         yaxis = list(title = 'Mean Height',
+                      gridcolor = 'rgb(255, 255, 255)',
+                      range = c(160,200),
+                      zerolinewidth = 1,
+                      ticklen = 5,
+                      gridwith = 2),
+         paper_bgcolor = 'rgb(243, 243, 243)',
+         plot_bgcolor = 'rgb(243, 243, 243)') %>% 
+         layout(showlegend = FALSE)
+
+
+
+
+```
+
+## country 
+```{r}
+a<-data.frame(country=c("Russia","Luxembourg","Estonia","South Korea","North Korea","Uzbekistan","Ukraine","Trinidad","Belarus","Kazakhstan"),
+              continent=c("Europe","Europe","Europe","Asia","Asia","Asia","Europe","Americas","Europe","Asia"))
+continent<-gapminder[,c(1,2)] %>% unique() %>% rbind(a)
+
+colnames(continent)<-c("region","continent")
+
+Tcountry<-athlete %>% 
+  select(Team,NOC,Year,Season,Sport,Games,Event,Medal) %>% 
+  filter(Season=="Summer") %>% 
+  group_by(Year,NOC) %>% 
+  summarise(Tath=n()) 
+
+Gcountry<-athlete %>% 
+  select(Team,NOC,Year,Season,Sport,Games,Event,Medal) %>% 
+  filter(Season=="Summer") %>% 
+  filter(Medal=="Gold") %>% 
+  unique(by=c("NOC","Year","Event")) %>% 
+  group_by(Year,NOC) %>% 
+  summarise(goldmedal=n()) %>% 
+  left_join(Tcountry,by=c("Year","NOC")) %>% 
+  left_join(region[,-3],by="NOC") %>% 
+  left_join(continent,by="region") %>% 
+  na.omit()
+
+p2 <- Gcountry %>%
+  plot_ly(
+    x = ~Tath, 
+    y = ~goldmedal, 
+    size = ~Tath, 
+    color = ~continent, 
+    frame = ~Year, 
+    type = 'scatter',
+    mode = 'markers'
+  ) 
+  
+
+
+p2
+
+
+```
+
+
+## Benford Analysis
+```{r}
+bfd.gdp <- benford(female$Height,1)
+plot(bfd.gdp)
+
+
+ggplot(female)
+
+```
+
