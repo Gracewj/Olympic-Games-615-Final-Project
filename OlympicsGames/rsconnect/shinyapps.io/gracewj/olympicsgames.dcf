@@ -5,6 +5,8 @@ account: gracewj
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 619659
-bundleId: 1771184
+bundleId: 1779294
 url: https://gracewj.shinyapps.io/olympicsgames/
-when: 1545151229.94241
+when: 1545454592.53875
+asMultiple: FALSE
+asStatic: FALSE
