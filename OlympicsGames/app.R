@@ -144,7 +144,7 @@ ui <- dashboardPage(
            fluidRow(
              column(width = 12,
                     box(
-                      title = "Top 10 business", 
+                      title = "Evolution of the Olympics over time", 
                       height=600,width = 12,
                       solidHeader = TRUE, 
                       status = "primary",
@@ -362,7 +362,11 @@ server <- function(input, output) {
   ## the orign data table................................................
     output$table<- DT::renderDataTable({
       tabledata <- na.omit(athlete)
-      DT::datatable(tabledata, options = list(searching = TRUE,pageLength = 50,lengthMenu = c( 50, 100, 500), scrollX = T,scrollY = "300px"),rownames= FALSE
+      DT::datatable(tabledata, 
+                    options = list(searching = TRUE,
+                                   pageLength = 100,lengthMenu = c( 50, 100, 500), 
+                                   scrollX = T,scrollY = "300px"),
+                    rownames= FALSE
     )
   }) 
 
